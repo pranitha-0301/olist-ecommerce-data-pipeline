@@ -1,0 +1,18 @@
+# Credentials and sensitive keys
+*.json
+!package.json
+.env
+keys/
+
+# Local data downloads
+data/
+*.csv
+*.zip
+
+# Python virtual environment & cache
+__pycache__/
+*.pyc
+.venv/
+env/
+.pytest_cache/
+.DS_Store

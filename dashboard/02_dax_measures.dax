@@ -1,0 +1,68 @@
+// =========================================================================
+// PHASE 9: POWER BI DAX MEASURES LIBRARY FOR E-COMMERCE DASHBOARD
+// =========================================================================
+
+// -------------------------------------------------------------------------
+// 1. EXECUTIVE KPI MEASURES
+// -------------------------------------------------------------------------
+
+Total Revenue = 
+SUM(fact_orders[total_item_value])
+
+Total Product Sales = 
+SUM(fact_orders[price])
+
+Total Freight = 
+SUM(fact_orders[freight_value])
+
+Total Orders = 
+DISTINCTCOUNT(fact_orders[order_id])
+
+Total Items Sold = 
+COUNT(fact_orders[fact_order_item_key])
+
+Total Customers = 
+DISTINCTCOUNT(fact_orders[customer_id])
+
+Average Order Value = 
+DIVIDE([Total Revenue], [Total Orders], 0)
+
+// -------------------------------------------------------------------------
+// 2. LOGISTICS & DELIVERY MEASURES
+// -------------------------------------------------------------------------
+
+Average Delivery Time (Days) = 
+AVERAGE(fact_orders[delivery_time_days])
+
+Total Delayed Orders = 
+SUM(fact_orders[is_delayed])
+
+Delayed Orders Percentage = 
+DIVIDE([Total Delayed Orders], [Total Orders], 0)
+
+// -------------------------------------------------------------------------
+// 3. CUSTOMER ANALYTICS MEASURES
+// -------------------------------------------------------------------------
+
+Revenue per Customer = 
+DIVIDE([Total Revenue], [Total Customers], 0)
+
+Orders per Customer = 
+DIVIDE([Total Orders], [Total Customers], 0)
+
+// -------------------------------------------------------------------------
+// 4. CUSTOMER REVIEWS MEASURES
+// -------------------------------------------------------------------------
+
+Average Review Score = 
+AVERAGE(silver_reviews[review_score])
+
+Total Reviews = 
+COUNT(silver_reviews[review_id])
+
+Five Star Reviews % = 
+DIVIDE(
+    CALCULATE(COUNT(silver_reviews[review_id]), silver_reviews[review_score] = 5),
+    [Total Reviews],
+    0
+)

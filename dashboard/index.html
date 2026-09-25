@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olist E-Commerce Executive BI Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0F172A;
+            --card-bg: #1E293B;
+            --card-border: #334155;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --accent-primary: #6366F1;
+            --accent-teal: #0EA5E9;
+            --accent-green: #10B981;
+            --accent-rose: #F43F5E;
+            --accent-amber: #F59E0B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .title-group h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366F1, #0EA5E9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-group p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-select:hover {
+            border-color: var(--accent-primary);
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .kpi-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 8px 0 4px 0;
+        }
+
+        .kpi-subtext {
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Charts Layout */
+        .charts-grid-top {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .charts-grid-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid-top, .charts-grid-bottom {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-group">
+            <h1>Olist E-Commerce Executive Dashboard</h1>
+            <p>Databricks Gold Layer (Star Schema) • Real-Time Metrics Overview</p>
+        </div>
+        <div class="filter-bar">
+            <select class="filter-select" id="dateFilter">
+                <option>All Time (2016 - 2018)</option>
+                <option>2018 (Full Year)</option>
+                <option>2017 (Full Year)</option>
+            </select>
+            <select class="filter-select" id="stateFilter">
+                <option>All States (Brazil)</option>
+                <option>SP - São Paulo</option>
+                <option>RJ - Rio de Janeiro</option>
+                <option>MG - Minas Gerais</option>
+                <option>RS - Rio Grande do Sul</option>
+            </select>
+            <select class="filter-select" id="categoryFilter">
+                <option>All Categories</option>
+                <option>Health & Beauty</option>
+                <option>Watches & Gifts</option>
+                <option>Bed Bath Table</option>
+                <option>Sports Leisure</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- KPI Cards Row -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value" style="color: #6366F1;">$16,008,872</div>
+            <div class="kpi-subtext">▲ +14.2% vs previous period</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Total Orders</div>
+            <div class="kpi-value">99,441</div>
+            <div class="kpi-subtext">▲ 112,650 Total Items</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Total Customers</div>
+            <div class="kpi-value">99,441</div>
+            <div class="kpi-subtext">▲ 96,096 Unique Customers</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Average Order Value (AOV)</div>
+            <div class="kpi-value" style="color: #0EA5E9;">$160.98</div>
+            <div class="kpi-subtext">▲ Product $137.75 + Freight $23.23</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-label">Avg Delivery Time</div>
+            <div class="kpi-value" style="color: #10B981;">12.5 Days</div>
+            <div class="kpi-subtext">✔ 97.02% Delivered On Time</div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="charts-grid-top">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Monthly Revenue & Order Volume Growth</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Top Revenue Product Categories</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="categoryRevenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="charts-grid-bottom">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Order Status Distribution</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="orderStatusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Top Customer States by Volume</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="stateVolumeChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Customer Review Score Ratings</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="reviewScoreChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart 1: Revenue Trend
+        const ctxTrend = document.getElementById('revenueTrendChart').getContext('2d');
+        new Chart(ctxTrend, {
+            type: 'line',
+            data: {
+                labels: ['Jan 17', 'Mar 17', 'May 17', 'Jul 17', 'Sep 17', 'Nov 17', 'Jan 18', 'Mar 18', 'May 18', 'Jul 18', 'Aug 18'],
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: [138000, 440000, 592000, 592000, 720000, 1190000, 1110000, 1150000, 1150000, 1060000, 1000000],
+                    borderColor: '#6366F1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } }
+                }
+            }
+        });
+
+        // Chart 2: Category Revenue
+        const ctxCat = document.getElementById('categoryRevenueChart').getContext('2d');
+        new Chart(ctxCat, {
+            type: 'bar',
+            data: {
+                labels: ['Health & Beauty', 'Watches & Gifts', 'Bed Bath Table', 'Sports Leisure', 'Computers'],
+                datasets: [{
+                    data: [1258000, 1205000, 1036000, 988000, 910000],
+                    backgroundColor: ['#6366F1', '#0EA5E9', '#10B981', '#F59E0B', '#8B5CF6'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } },
+                    y: { grid: { display: false }, ticks: { color: '#F8FAFC' } }
+                }
+            }
+        });
+
+        // Chart 3: Order Status
+        const ctxStatus = document.getElementById('orderStatusChart').getContext('2d');
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Delivered (97.02%)', 'Shipped (1.11%)', 'Canceled (0.63%)', 'Unavailable (0.61%)'],
+                datasets: [{
+                    data: [96478, 1107, 625, 609],
+                    backgroundColor: ['#10B981', '#0EA5E9', '#F43F5E', '#F59E0B'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#94A3B8', boxWidth: 12 } } }
+            }
+        });
+
+        // Chart 4: Customer States
+        const ctxState = document.getElementById('stateVolumeChart').getContext('2d');
+        new Chart(ctxState, {
+            type: 'bar',
+            data: {
+                labels: ['SP', 'RJ', 'MG', 'RS', 'PR'],
+                datasets: [{
+                    data: [41746, 12852, 11635, 5466, 5045],
+                    backgroundColor: '#0EA5E9',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#F8FAFC' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } }
+                }
+            }
+        });
+
+        // Chart 5: Review Scores
+        const ctxReview = document.getElementById('reviewScoreChart').getContext('2d');
+        new Chart(ctxReview, {
+            type: 'bar',
+            data: {
+                labels: ['5 Stars', '4 Stars', '3 Stars', '2 Stars', '1 Star'],
+                datasets: [{
+                    data: [57320, 19142, 8179, 3157, 11426],
+                    backgroundColor: ['#10B981', '#34D399', '#FBBF24', '#F97316', '#F43F5E'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#F8FAFC' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94A3B8' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
