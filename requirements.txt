@@ -3,3 +3,6 @@ google-cloud-bigquery>=3.0.0
 db-dtypes>=1.0.0
 python-dotenv>=1.0.0
 kagglehub>=0.2.0
+pandas-gbq>=0.20.0
+pyspark>=3.4.0
+delta-spark>=3.0.0
