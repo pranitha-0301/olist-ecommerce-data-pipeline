@@ -88,6 +88,7 @@ data_pipeline_bigqeury/
 │   └── run_validations.py              # Automated BigQuery SQL runner
 │
 ├── dashboard/
+│   ├── index.html                  # Bronze, Silver, Gold dashboard interface
 │   ├── 01_power_bi_connection_guide.md # Databricks-to-Power BI setup guide
 │   ├── 02_dax_measures.dax             # Production DAX measures library
 │   └── 03_dashboard_design_specification.md # Visual UI/UX layout specs
@@ -97,6 +98,32 @@ data_pipeline_bigqeury/
 ├── requirements.txt            # Project dependencies
 └── README.md                   # Enterprise documentation
 ```
+
+### Local setup and execution
+
+Run these commands from the repository root (Windows PowerShell):
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+The scripts locate `.env` relative to the project files, so they do not depend on
+the current working directory. Configure Kaggle authentication and Google Cloud
+Application Default Credentials before running `python main.py`; ingestion and SQL
+validation create or replace BigQuery resources. The Databricks transformation
+phases require a Databricks runtime with the BigQuery connector and Delta Lake
+configured. For local Spark execution, install a compatible Java runtime as well.
+
+Open `dashboard/index.html` in a browser to switch between the Bronze, Silver, and
+Gold dashboard views. Its figures are an illustrative preview, not live table
+queries.
+
+`extracting.py` downloads and previews `olist_orders_dataset.csv` by default. Set
+`KAGGLE_FILE_NAME` to another CSV filename from the dataset to preview a different
+table.
 
 ---
 
@@ -121,14 +148,14 @@ Executes 7 automated SQL checks verifying 100% row count fidelity, zero NULL pri
 Establishes a direct Spark connection between Google BigQuery and Databricks using the Maven library `com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.34.0` without intermediate local CSV downloads.
 
 ### Phase 4 — Bronze Layer (Delta Lake)
-Persists raw tables in Databricks database `olist_bronze_db` using Delta Lake (`format("delta")`). Appends audit columns (`_ingested_at`, `_source_system`) to preserve original historical data.
+Persists raw tables in Databricks database `olist_bronze_db` using Delta Lake (`format("delta")`). Appends audit columns (`_ingested_at`, `_source_system`) to preserve original historical data. For the duplicate-removal demonstration, the Bronze order-items table also receives 100 tagged copies by default; set `BRONZE_DEMO_DUPLICATE_ROWS=0` to disable this demo behavior.
 
 ### Phase 5 — Silver Layer (Cleaned & Standardized)
 Cleans and standardizes raw data into `olist_silver_db`:
 * **`silver_orders`**: Deduplicates `order_id`, cleans carrier timestamp anomalies (`carrier_date < purchase_date`), calculates `delivery_time_days` and `is_delayed` flags.
 * **`silver_customers`**: Standardizes cities (Title Case) and states (Uppercase).
 * **`silver_products`**: Left joins translation table to add English category names, fixes column name typos (`product_name_length`), coalesces missing categories.
-* **`silver_order_items`**: Filters negative prices/freight, calculates `total_item_value = price + freight_value`.
+* **`silver_order_items`**: Deduplicates on `(order_id, order_item_id)`, removes the Bronze demo marker, filters negative prices/freight, and calculates `total_item_value = price + freight_value`.
 * **`silver_reviews`**: Validates 1–5 score range, fills missing text with `'No comment'`.
 
 ### Phase 6 — Gold Layer & Data Modeling (Star Schema)

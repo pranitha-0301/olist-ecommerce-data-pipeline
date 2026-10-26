@@ -9,29 +9,34 @@
 #    e.g., gs://your-olist-staging-bucket
 
 import os
-import json
+from pathlib import Path
+
+from dotenv import load_dotenv
+
 # pyrefly: ignore [missing-import]
 from pyspark.sql import SparkSession
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if credentials_path:
+    credentials_file = Path(credentials_path).expanduser()
+    if not credentials_file.is_absolute():
+        credentials_file = PROJECT_ROOT / credentials_file
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(credentials_file.resolve())
+
 # -------------------------------------------------------------------------
-# 1. Configuration & Placeholders
+# 1. Configuration
 # -------------------------------------------------------------------------
-# Replace with your actual GCP Project ID, BigQuery Dataset, and Temp GCS Bucket
-GCP_PROJECT_ID = "YOUR_GCP_PROJECT_ID"        # e.g., "data-engineering-509307"
-BIGQUERY_DATASET = "olist_ecommerce"
-TEMP_GCS_BUCKET = "YOUR_TEMP_GCS_BUCKET_NAME"  # e.g., "olist-staging-bucket"
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "data-engineering-509307")
+BIGQUERY_DATASET = os.getenv("BIGQUERY_DATASET", "olist_ecommerce")
+TEMP_GCS_BUCKET = os.getenv("TEMP_GCS_BUCKET")
 
 # -------------------------------------------------------------------------
 # 2. Authentication setup
 # -------------------------------------------------------------------------
-# Option A: Read credentials via Databricks Secret Scope (Recommended for production)
-# SERVICE_ACCOUNT_KEY_JSON = dbutils.secrets.get(scope="gcp-secrets", key="sa-key-json")
-
-# Option B: Read credentials from environment variable or mounted volume path
-SERVICE_ACCOUNT_KEY_PATH = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS", 
-    "/path/to/your-service-account-key.json"
-)
+# Uses Application Default Credentials. Set GOOGLE_APPLICATION_CREDENTIALS to a
+# service-account key path only when ADC is not configured in the runtime.
 
 # -------------------------------------------------------------------------
 # 3. Initialize Spark Session with BigQuery Connector Config
@@ -46,7 +51,7 @@ spark = SparkSession.builder \
 # Set Global Spark Config for BigQuery Connector
 spark.conf.set("parentProject", GCP_PROJECT_ID)
 spark.conf.set("project", GCP_PROJECT_ID)
-if TEMP_GCS_BUCKET != "YOUR_TEMP_GCS_BUCKET_NAME":
+if TEMP_GCS_BUCKET:
     spark.conf.set("temporaryGcsBucket", TEMP_GCS_BUCKET)
 
 print(f"✅ Spark Session initialized. Ready to connect to BigQuery Project: {GCP_PROJECT_ID}")

@@ -1,22 +1,26 @@
-# Install dependencies as needed:
-# pip install kagglehub[pandas-datasets]
-# pyrefly: ignore [missing-import]
+import os
+from pathlib import Path
+
 import kagglehub
-# pyrefly: ignore [missing-import]
-from kagglehub import KaggleDatasetAdapter
+import pandas as pd
 
-# Set the path to the file you'd like to load
-file_path = "user/bhuthamvishwateja/data_pipeline_bigquery"
+from config.config import KAGGLE_DATASET_ID, TABLE_NAME_MAPPING
 
-# Load the latest version
-df = kagglehub.load_dataset(
-  KaggleDatasetAdapter.PANDAS,
-  "olistbr/brazilian-ecommerce",
-  file_path,
-  # Provide any additional arguments like 
-  # sql_query or pandas_kwargs. See the 
-  # documenation for more information:
-  # https://github.com/Kaggle/kagglehub/blob/main/README.md#kaggledatasetadapterpandas
-)
+file_name = os.getenv("KAGGLE_FILE_NAME", "olist_orders_dataset.csv")
+if file_name not in TABLE_NAME_MAPPING:
+    supported_files = ", ".join(TABLE_NAME_MAPPING)
+    raise ValueError(
+        f"Unsupported Kaggle file '{file_name}'. Choose one of: {supported_files}"
+    )
 
-print("First 5 records:", df.head())
+dataset_path = Path(kagglehub.dataset_download(KAGGLE_DATASET_ID))
+file_path = dataset_path / file_name
+if not file_path.is_file():
+    raise FileNotFoundError(
+        f"Expected dataset file '{file_name}' was not found in '{dataset_path}'."
+    )
+
+df = pd.read_csv(file_path)
+print(f"Loaded '{file_path}' ({len(df):,} rows).")
+print("First 5 records:")
+print(df.head())

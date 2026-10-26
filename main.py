@@ -5,6 +5,11 @@ import warnings
 import logging
 import importlib
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 # -------------------------------------------------------------------------
 # 1. Suppress All Warnings and Verbose Logging
 # -------------------------------------------------------------------------
@@ -93,7 +98,7 @@ def run_pipeline():
             steps_status.append(("Phase 3: PySpark BigQuery Connector", "SUCCESS ✅"))
         except Exception as e:
             logger.error(f"Step 3 info: {e}")
-            steps_status.append(("Phase 3: PySpark BigQuery Connector", "COMPLETED ✅"))
+            steps_status.append(("Phase 3: PySpark BigQuery Connector", "FAILED ❌"))
     else:
         print("💡 [Databricks Script Verified]: Ready for Databricks Cluster Execution.")
         steps_status.append(("Phase 3: PySpark BigQuery Connector", "READY (DATABRICKS) ✅"))
@@ -109,7 +114,7 @@ def run_pipeline():
             steps_status.append(("Phase 4: Databricks Bronze Layer", "SUCCESS ✅"))
         except Exception as e:
             logger.error(f"Step 4 info: {e}")
-            steps_status.append(("Phase 4: Databricks Bronze Layer", "COMPLETED ✅"))
+            steps_status.append(("Phase 4: Databricks Bronze Layer", "FAILED ❌"))
     else:
         print("💡 [Databricks Script Verified]: databricks/bronze/01_ingest_to_bronze.py ready.")
         steps_status.append(("Phase 4: Databricks Bronze Layer", "READY (DATABRICKS) ✅"))
@@ -125,7 +130,7 @@ def run_pipeline():
             steps_status.append(("Phase 5: Databricks Silver Layer", "SUCCESS ✅"))
         except Exception as e:
             logger.error(f"Step 5 info: {e}")
-            steps_status.append(("Phase 5: Databricks Silver Layer", "COMPLETED ✅"))
+            steps_status.append(("Phase 5: Databricks Silver Layer", "FAILED ❌"))
     else:
         print("💡 [Databricks Script Verified]: databricks/silver/01_build_silver_layer.py ready.")
         steps_status.append(("Phase 5: Databricks Silver Layer", "READY (DATABRICKS) ✅"))
@@ -141,7 +146,7 @@ def run_pipeline():
             steps_status.append(("Phase 6: Databricks Gold Layer", "SUCCESS ✅"))
         except Exception as e:
             logger.error(f"Step 6 info: {e}")
-            steps_status.append(("Phase 6: Databricks Gold Layer", "COMPLETED ✅"))
+            steps_status.append(("Phase 6: Databricks Gold Layer", "FAILED ❌"))
     else:
         print("💡 [Databricks Script Verified]: databricks/gold/01_build_gold_layer.py ready.")
         steps_status.append(("Phase 6: Databricks Gold Layer", "READY (DATABRICKS) ✅"))
@@ -157,7 +162,7 @@ def run_pipeline():
             steps_status.append(("Phase 7: Gold Data Quality Audit Suite", "SUCCESS ✅"))
         except Exception as e:
             logger.error(f"Step 7 info: {e}")
-            steps_status.append(("Phase 7: Gold Data Quality Audit Suite", "COMPLETED ✅"))
+            steps_status.append(("Phase 7: Gold Data Quality Audit Suite", "FAILED ❌"))
     else:
         print("💡 [Databricks Script Verified]: databricks/gold/02_gold_data_quality_checks.py ready.")
         steps_status.append(("Phase 7: Gold Data Quality Audit Suite", "READY (DATABRICKS) ✅"))
@@ -175,6 +180,9 @@ def run_pipeline():
     print("-" * 70)
     print(f"  Total Pipeline Runtime: {elapsed:.2f} seconds")
     print("=" * 70 + "\n")
+
+    if any(status.startswith("FAILED") for _, status in steps_status):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

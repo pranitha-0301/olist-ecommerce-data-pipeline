@@ -129,6 +129,7 @@ def transform_silver_order_items(spark: SparkSession) -> DataFrame:
     
     df_silver = df_bronze \
         .dropDuplicates(["order_id", "order_item_id"]) \
+        .drop("_is_demo_duplicate") \
         .filter((col("price") >= 0) & (col("freight_value") >= 0)) \
         .withColumn("total_item_value", col("price") + col("freight_value")) \
         .withColumn("_silver_processed_at", current_timestamp())

@@ -1,9 +1,17 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
-# Load environment variables from .env file
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if credentials_path:
+    credentials_file = Path(credentials_path).expanduser()
+    if not credentials_file.is_absolute():
+        credentials_file = PROJECT_ROOT / credentials_file
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(credentials_file.resolve())
 
 GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "data-engineering-509307")
 BIGQUERY_DATASET = os.getenv("BIGQUERY_DATASET", "olist_ecommerce")

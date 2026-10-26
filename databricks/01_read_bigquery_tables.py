@@ -2,13 +2,26 @@
 # Phase 3: Reading all 9 BigQuery Tables into PySpark DataFrames
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
 # pyrefly: ignore [missing-import]
 from pyspark.sql import SparkSession, DataFrame
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if credentials_path:
+    credentials_file = Path(credentials_path).expanduser()
+    if not credentials_file.is_absolute():
+        credentials_file = PROJECT_ROOT / credentials_file
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(credentials_file.resolve())
 
 # -------------------------------------------------------------------------
 # Configuration
 # -------------------------------------------------------------------------
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "YOUR_GCP_PROJECT_ID")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "data-engineering-509307")
 BIGQUERY_DATASET = os.getenv("BIGQUERY_DATASET", "olist_ecommerce")
 
 TABLE_NAMES = [

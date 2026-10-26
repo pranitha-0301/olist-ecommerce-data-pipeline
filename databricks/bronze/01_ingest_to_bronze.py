@@ -2,17 +2,31 @@
 # Phase 4: Ingest Raw BigQuery Tables into Databricks Delta Lake Bronze Layer
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
 # pyrefly: ignore [missing-import]
 from pyspark.sql import SparkSession, DataFrame
 # pyrefly: ignore [missing-import]
 from pyspark.sql.functions import current_timestamp, lit
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
+credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+if credentials_path:
+    credentials_file = Path(credentials_path).expanduser()
+    if not credentials_file.is_absolute():
+        credentials_file = PROJECT_ROOT / credentials_file
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(credentials_file.resolve())
+
 # -------------------------------------------------------------------------
 # 1. Configurations & Target Database Setup
 # -------------------------------------------------------------------------
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "YOUR_GCP_PROJECT_ID")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "data-engineering-509307")
 BIGQUERY_DATASET = os.getenv("BIGQUERY_DATASET", "olist_ecommerce")
 DATABRICKS_DATABASE = "olist_bronze_db"
+DEMO_DUPLICATE_ORDER_ITEMS = int(os.getenv("BRONZE_DEMO_DUPLICATE_ROWS", "100"))
 
 TABLE_MAPPINGS = {
     "orders": "bronze_orders",
@@ -59,6 +73,22 @@ def transform_to_bronze(df_raw: DataFrame, source_table: str) -> DataFrame:
     return df_bronze
 
 
+def add_demo_order_item_duplicates(df_raw: DataFrame) -> DataFrame:
+    """Adds tagged duplicate order-item rows for demonstrating Silver deduplication."""
+    if DEMO_DUPLICATE_ORDER_ITEMS <= 0:
+        return df_raw
+
+    original_rows = df_raw.withColumn("_is_demo_duplicate", lit(False))
+    duplicate_rows = df_raw.limit(DEMO_DUPLICATE_ORDER_ITEMS).withColumn(
+        "_is_demo_duplicate", lit(True)
+    )
+    print(
+        f"⚠️ Demo mode: adding up to {DEMO_DUPLICATE_ORDER_ITEMS:,} "
+        "duplicate order-item rows to Bronze only."
+    )
+    return original_rows.unionByName(duplicate_rows)
+
+
 def write_to_delta_bronze(df_bronze: DataFrame, delta_table_name: str):
     """Writes DataFrame to Databricks Delta Lake format."""
     target_table_ref = f"{DATABRICKS_DATABASE}.{delta_table_name}"
@@ -87,6 +117,8 @@ def run_bronze_pipeline(spark: SparkSession):
         
         # Step 1: Read raw data from BigQuery
         df_raw = read_raw_from_bigquery(spark, bq_table)
+        if bq_table == "order_items":
+            df_raw = add_demo_order_item_duplicates(df_raw)
         
         # Step 2: Add metadata enrichment
         df_bronze = transform_to_bronze(df_raw, bq_table)
